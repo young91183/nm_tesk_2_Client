@@ -21,12 +21,12 @@ json getDiskInfo();
 json getMemoryInfo();
 json getNICInfo(std::string *client_ip);
 std::string getCurrentDateTime();
-json getInfo(std::string ip);
+nlohmann::json getInfo(std::string ip, std::string id, std::string pw);
 
 class Client {
 public:
     Client();
-    void start();
+    void start(std::string id, std::string pw);
 private:
     bool connectToServer();
     int server_socket;

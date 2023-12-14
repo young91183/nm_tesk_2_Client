@@ -235,14 +235,14 @@ std::string getCurrentDateTime() {
 
 
 // info Table에 들어갈 정보를 정리해 json 형태로 가공
-nlohmann::json getInfo(std::string ip) {
+nlohmann::json getInfo(std::string ip, std::string id, std::string pw) {
 	nlohmann::json json;
 	int i;
-	json["id"] = PC_NUM;
+	json["id"] = id;
 	json["ip"] = ip;
 	json["up_time"] = getCurrentDateTime();
 	json["state"] = "login";
-	json["password"]= "1234";
+	json["password"]= pw;
 
 	return json;
 }
@@ -254,7 +254,7 @@ Client::Client() : server_socket(socket(AF_INET, SOCK_STREAM, 0)) {
     }
 }
 
-void Client::start() { 
+void Client::start(std::string id, std::string pw) { 
 	// start() 함수 시작할 때의 현재 시각 추출
 	std::chrono::system_clock::time_point start_time;
 	std::chrono::nanoseconds runtime;
@@ -268,7 +268,7 @@ void Client::start() {
 		pc_data["mem"] = getMemoryInfo();
 		pc_data["disk"] = getDiskInfo();
         pc_data["nic"] = getNICInfo(&client_ip);
-		pc_data["account_info"] = getInfo(client_ip);
+		pc_data["account_info"] = getInfo(client_ip, id, pw);
 		std::string message = pc_data.dump();
 		std::cout << "write!\n";
 		ssize_t n = write(server_socket, message.c_str(), message.size());
