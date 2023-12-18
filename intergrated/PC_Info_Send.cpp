@@ -232,7 +232,7 @@ std::string getCurrentDateTime() {
 }
 
 
-// info Table에 들어갈 정보를 정리해 json 형태로 가공
+// account_info Table에 들어갈 정보를 정리해 json 형태로 가공
 nlohmann::json getInfo(std::string ip, std::string id, std::string pw) {
 	nlohmann::json json;
 	int i;
@@ -245,56 +245,97 @@ nlohmann::json getInfo(std::string ip, std::string id, std::string pw) {
 	return json;
 }
 
-Client::Client() : server_socket(socket(AF_INET, SOCK_STREAM, 0)) { 
+PC_Info_Client::PC_Info_Client() : server_socket(socket(AF_INET, SOCK_STREAM, 0)) { 
     if (server_socket < 0) {
         std::perror("socket");
         exit(1);
     }
 }
 
-void Client::start(std::string id, std::string pw) { 
-	// start() 함수 시작할 때의 현재 시각 추출
-	std::chrono::system_clock::time_point start_time;
-	std::chrono::nanoseconds runtime;
-	while (true) {
-		start_time =std::chrono::system_clock::now();
-	
-		nlohmann::json pc_data;
-		server_socket = socket(AF_INET, SOCK_STREAM, 0);
-        if (!connectToServer()) exit(1);
-		pc_data["cpu"] = getCPUInfo();
-		pc_data["mem"] = getMemoryInfo();
-		pc_data["disk"] = getDiskInfo();
-        pc_data["nic"] = getNICInfo(&client_ip);
-		pc_data["account_info"] = getInfo(client_ip, id, pw);
-		std::string message = pc_data.dump();
-		std::cout << "write!\n";
-		ssize_t n = write(server_socket, message.c_str(), message.size());
+int PC_Info_Client::start(std::string id, std::string pw, bool* isLoop) { 
+    std::string request_message, message;
+    char buffer[500];
+    ssize_t n;
+    std::chrono::system_clock::time_point start_time;
+    std::chrono::nanoseconds runtime;
 
-		if (n <= 0) {
-			if (n < 0) std::cout << "write err\n";
+    while (*isLoop) {
+        start_time = std::chrono::system_clock::now();
+        server_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+        nlohmann::json pc_data;
+        request_message = "pc_info";
+        request_message += '\0';
+        if (!connectToServer()) exit(1);
+        n = write(server_socket, request_message.c_str(), request_message.size());
+        if (n <= 0) {
+            if (n < 0) std::cout << "write err\n";
+            exit(1);
+            return -1;
+        }
+
+        pc_data["cpu"] = getCPUInfo();
+        pc_data["mem"] = getMemoryInfo();
+        pc_data["disk"] = getDiskInfo();
+        pc_data["nic"] = getNICInfo(&client_ip);
+        pc_data["account_info"] = getInfo(client_ip, id, pw);
+        std::string message = pc_data.dump();
+		if(!*isLoop){ // 만약 전송 직전 로그아웃 되는 경우 대비
+                break;
+        } else {
+        n = write(server_socket, message.c_str(), message.size());
+        if (n <= 0) {
+            if (n < 0) std::cout << "write err\n";
+            return -1;
+        }
+
+        close(server_socket);
 		}
 
-		std::cout << "close!\n";
-		close(server_socket);
-		// 동작이 끝난 시간 - start_time으로 동작시간 추출
-		runtime = std::chrono::system_clock::now() - start_time;
-		// 사용자가 설정한 Client의 동작 주기 - 각각 Client의 동작시간만큼 휴식
-		// 이렇게 할 경우 동일하게 시작하는 Client 그룹에서 완전히 동일한 주기를 갖게 됨
-		std::this_thread::sleep_for(std::chrono::nanoseconds(4000000000)-runtime);
-	}
+        runtime = std::chrono::system_clock::now() - start_time;
+
+        auto sleepTime = std::chrono::nanoseconds(4000000000)-runtime; // 멈출 시간
+        auto end = std::chrono::system_clock::now() + sleepTime; // 깨어날 시각 계산
+        while(std::chrono::system_clock::now() < end) {
+            if(!*isLoop){ // 만약 중간에 isLoop가 꺼질 경우 종료
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+    return 0;
 }
 
-bool Client::connectToServer() { 
-	std::cout << "new_connect! \n";
+bool PC_Info_Client::connectToServer() {
 	sockaddr_in server_address{};
 	server_address.sin_family = AF_INET;
-	server_address.sin_port = htons(8081);
-	server_address.sin_addr.s_addr = inet_addr("192.168.0.16");
+	server_address.sin_port = htons(SERVER_PORT);
+	server_address.sin_addr.s_addr = inet_addr(SERVER_IP);
 
 	if (connect(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
-		std::perror("connect");
+		std::perror("connect_pc_info");
 		return false; // Connect 실패 시 false 반환
 	}
 	return true;
+}
+
+void pc_info_start(std::string id, std::string pw, bool * isLoop) {
+	int pc_num = atoi(PC_NUM), err; // PC_NUM을 정수형으로 변환해 사용
+	while(*isLoop) {
+		auto now = std::chrono::system_clock::now(); // 현재시간 추출
+		// 현재시간을 초단위로 변경해 계산이 가능하도록 변환
+		auto now_in_sec = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+		if (now_in_sec % 2 == pc_num % 2){ // 고유번호를 이용해 Client의 첫 요청을 분산
+			PC_Info_Client * pc_info_client = new PC_Info_Client();
+			err = pc_info_client->start(id, pw, isLoop);
+			if (err != 0){
+				std::cout << "오류발생\n" << std::endl;
+				return;
+			}
+			delete pc_info_client;
+			break;
+		} else {
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+	}
 }
