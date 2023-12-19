@@ -254,7 +254,7 @@ PC_Info_Client::PC_Info_Client() : server_socket(socket(AF_INET, SOCK_STREAM, 0)
 
 int PC_Info_Client::start(std::string id, std::string pw, bool* isLoop) { 
     std::string request_message, message;
-    char buffer[500];
+    char buffer[1024];
     ssize_t n;
     std::chrono::system_clock::time_point start_time;
     std::chrono::nanoseconds runtime;

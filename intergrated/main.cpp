@@ -1,10 +1,10 @@
-#include "Account_Client.h"
-#include "PC_Info_Send.h"
+#include "./Account_Client/Account_Client.h"
+#include "./PC_Info_Send/PC_Info_Send.h"
 
 int main(void) {
 	bool isLoop = false;
 	std::string id, pw, req;
-	int result = 2, log_signal=0;
+	int result = 2, log_signal = 0;
 	std::thread pc_info_thread; 
 	std::thread file_send_thread;
 	
@@ -38,7 +38,7 @@ int main(void) {
 			// PC_INFO 가동
 			pc_info_thread = std::thread(pc_info_start, id, pw, &isLoop);
 			// 압축 전송 모듈 가동
-			// 작성 중
+			// 제작 중
 			std::cout << "시스템 가동이 시작되었습니다.\n";
 
 		} else if (result == 0) {
