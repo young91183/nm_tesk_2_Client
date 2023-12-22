@@ -3,8 +3,10 @@
 # 각 명령을 순차적으로 실행합니다.
 g++ -c -std=c++17 ./Account_Client/Account_Client.cpp
 g++ -c -std=c++17 ./PC_Info_Send/PC_Info_Send.cpp
+g++ -c ./File_Send/File_Send.cpp
+g++ -c ./Add_Log/Add_Log.cpp
 g++ -c main.cpp
-g++ Account_Client.o PC_Info_Send.o main.o -o qwe -lpthread
+g++ Account_Client.o PC_Info_Send.o File_Send.o Add_Log.o main.o -o qwe -lpthread -llz4
 
 # 모든 명령이 정상적으로 실행되었는지 확인
 if [ $? -eq 0 ]
