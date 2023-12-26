@@ -10,20 +10,20 @@ int main(void) {
 	std::thread pc_info_thread; 
 	std::thread file_send_thread;
 	int server_socket, file_send_socket;
+	add_log("Service", "on");
 	while(true) {
 		server_socket = socket(AF_INET, SOCK_STREAM, 0);
 		if (server_socket < 0) {
 			std::perror("socket");
 			exit(1);
     	}
-		add_log("Service", "on");
 		Account_Client *account_client = new Account_Client(server_socket);
 		std::cout << "[login, logout, join 중 선택]\n";
 		std::cout << "[시스템 종료 : quit]\n";
 		std::cout << "Request : ";
 		std::cin >> req;
 		if (req == "quit") {
-			isLoop = false;	
+			isLoop = false;
 			break;
 		} else if ((req == "login" || req =="join")&& log_signal == 1){
 			std::cout << "이미 로그인 중입니다. 로그 아웃 후 진행 해 주세요.\n";
@@ -58,7 +58,7 @@ int main(void) {
 			std::cout << "PC상태 정보전송이 시작되었습니다.\n";
 			// 압축 전송 모듈 가동
 			file_send_socket = server_socket;
-			file_send_thread = std::thread(make_file, file_send_socket, &isLoop);
+			file_send_thread = std::thread(make_file, file_send_socket, id , &isLoop);
 			std::cout << "서버의 압축파일 요청 대기를 시작했습니다.\n";
 
 		// 로그아웃 응답

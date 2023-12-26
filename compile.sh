@@ -8,6 +8,8 @@ g++ -c ./Add_Log/Add_Log.cpp
 g++ -c main.cpp
 g++ Account_Client.o PC_Info_Send.o File_Send.o Add_Log.o main.o -o qwe -lpthread -llz4
 
+rm Account_Client.o PC_Info_Send.o File_Send.o Add_Log.o main.o
+
 # 모든 명령이 정상적으로 실행되었는지 확인
 if [ $? -eq 0 ]
 then
