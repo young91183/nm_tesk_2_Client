@@ -159,6 +159,8 @@ void file_send(int server_socket, std::string file_path){
 
 
 /*----------------파일 정보 전송 실패작-----------------------------------------*/
+
+// 파일 한번에 send
 /*
 file_to_send.read(buffer, size);
 if (send(server_socket, buf, size, 0) == -1) {
@@ -167,7 +169,10 @@ if (send(server_socket, buf, size, 0) == -1) {
 }
 */
 
-/*
+
+
+// 파일을 보낸 뒤 EOS 메세지를 보내서 파일 전송 끝을 알려주기
+/* 
 while (file_to_send.read(buffer, sizeof(buffer)).gcount() > 0){
     n = write(server_socket, buffer, file_to_send.gcount());
     if (n < 0) add_log("Account", "file send write err");
